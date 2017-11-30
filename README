@@ -1,0 +1,5 @@
+mltree_check
+------------
+
+Prove claims on relationships between input and output of decision trees.
+Depends on z3 (https://github.com/Z3Prover/z3) and sklearn (http://scikit-learn.org/)
