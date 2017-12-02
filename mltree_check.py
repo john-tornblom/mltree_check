@@ -8,10 +8,9 @@ class Walker(object):
     symtab = None
     feature_names = None
     
-    def __init__(self, feature_names=None, target_names=None):
+    def __init__(self, feature_names=None):
         self.symtab = dict()
         self.feature_names = feature_names
-        self.target_names = target_names
         if feature_names is not None:
             for name in feature_names:
                 self.symtab[name] = z3.Real(name)
@@ -27,18 +26,13 @@ class Walker(object):
         cond = sym <= tree.threshold[node_id]
         iftrue = self.accept(tree, node_id, left_id)
         iffalse = self.accept(tree, node_id, right_id)
-        return z3.If(cond, iftrue, iffalse)
+        return [z3.If(cond, t, f) for t, f in zip(iftrue, iffalse)]
         
     def terminal(self, tree, node_id):
         if tree.n_outputs != 1:
             raise Exception('Unsupported value type in terminal')
 
-        value = tree.value[node_id][0, :]
-        if self.target_names is None:
-            self.target_names = ['y%d' % idx for idx in range(len(value))]
-
-        # TODO: vector output
-        return value[0]
+        return tree.value[node_id][0, :]
     
     def symbol(self, tree, node_id):
         idx = tree.feature[node_id]
@@ -57,9 +51,17 @@ class Walker(object):
 
 
 def translate(tree, feature_names=None, target_names=None):
-    w = Walker(feature_names, target_names)
+    w = Walker(feature_names)
+    symbols = dict()
     res = w.accept(tree.tree_, 0, 0)
-    symbols = dict(y=res)
+    for idx, y in enumerate(res):
+        if  target_names is None:
+            name = 'y%d' % (idx+1)
+        else:
+            name = target_names[idx]
+            
+        symbols[name] = y
+        
     symbols.update(w.symtab)
     return symbols
 
